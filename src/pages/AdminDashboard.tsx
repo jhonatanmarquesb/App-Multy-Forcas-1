@@ -11,6 +11,7 @@ import { Logo } from '../components/Logo';
 import { cn } from '../lib/utils';
 import { handleFirestoreError } from '../lib/firestore-errors';
 import { Exercise, WorkoutDivision, Workout } from '../types';
+import { toast } from '../lib/toast';
 
 interface AdminDashboardProps {
   initialTab?: 'membros' | 'treinos' | 'agenda';
@@ -74,7 +75,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab }) =>
   const [appointmentForm, setAppointmentForm] = useState({
     services: [] as string[],
     observation: '',
-    paymentStatus: 'Pendente' as 'Pago' | 'Pendente'
+    paymentStatus: 'Pendente' as 'Pago' | 'Pendente',
+    professorId: '',
+    professorName: ''
   });
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
@@ -232,7 +235,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab }) =>
     }
     
     if (!data || !hora || appointmentForm.services.length === 0) {
-      alert('Por favor, selecione ao menos um serviço e a data/horário da consulta.');
+      toast('Selecione ao menos um serviço e a data/horário da consulta.', 'error');
+      return;
+    }
+
+    if (!appointmentForm.professorId) {
+      toast('Escolha o professor responsável por essa avaliação ou consulta.', 'error');
       return;
     }
 
@@ -248,6 +256,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab }) =>
         date: dataFinal || "",
         observation: appointmentForm.observation || "",
         paymentStatus: appointmentForm.paymentStatus || 'Pendente',
+        professorId: appointmentForm.professorId,
+        professorName: appointmentForm.professorName,
         updatedAt: new Date().toISOString()
       };
 
@@ -273,7 +283,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab }) =>
       setAppointmentForm({
         services: [],
         observation: '',
-        paymentStatus: 'Pendente'
+        paymentStatus: 'Pendente',
+        professorId: '',
+        professorName: ''
       });
       
       // Refresh appointment list
@@ -314,7 +326,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab }) =>
     setAppointmentForm({
       services: app.services || [],
       observation: app.observation || '',
-      paymentStatus: app.paymentStatus || 'Pendente'
+      paymentStatus: app.paymentStatus || 'Pendente',
+      professorId: app.professorId || '',
+      professorName: app.professorName || ''
     });
     
     // PASSO 2: CORREÇÃO DA ABERTURA DO MODO DE EDIÇÃO
@@ -1672,6 +1686,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab }) =>
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3 block ml-1">
+                        Professor Responsável <span className="text-[#FFD700]">*</span>
+                      </label>
+                      {users.filter(u => u.role === 'professor').length === 0 ? (
+                        <div className="p-4 rounded-2xl border border-dashed border-zinc-800 text-zinc-600 text-[10px] font-bold uppercase tracking-wider text-center">
+                          Nenhum professor cadastrado ainda. Cadastre um em "Alunos" com o cargo Professor.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                          {users
+                            .filter(u => u.role === 'professor')
+                            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                            .map(prof => {
+                              const profId = prof.uid || prof.id || '';
+                              const selected = appointmentForm.professorId === profId;
+                              return (
+                                <button
+                                  key={profId}
+                                  type="button"
+                                  onClick={() => setAppointmentForm({ ...appointmentForm, professorId: profId, professorName: prof.name })}
+                                  className={cn(
+                                    "p-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all text-left truncate",
+                                    selected
+                                      ? "bg-[#FFD700]/10 border-[#FFD700] text-[#FFD700]"
+                                      : "bg-black border-zinc-800 text-zinc-600 hover:border-zinc-700"
+                                  )}
+                                >
+                                  {prof.name}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">

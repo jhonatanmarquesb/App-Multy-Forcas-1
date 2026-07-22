@@ -17,6 +17,7 @@ import { WorkoutView } from './pages/WorkoutView';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { CollaboratorDashboard } from './pages/CollaboratorDashboard';
 import { StudentSearch } from './pages/StudentSearch';
+import { AvaliacoesConsultas } from './pages/AvaliacoesConsultas';
 
 // Aba inicial sensata por cargo — staff cai na gestão, aluno cai no treino.
 const defaultTabForRole = (role?: string) => {
@@ -83,6 +84,7 @@ const AppContent = () => {
         return <Evolucao />;
       case 'agenda':
         if (role === 'admin' || role === 'colaborador') return <AdminDashboard initialTab="agenda" />;
+        if (role === 'professor') return <AvaliacoesConsultas />;
         return <Schedule />;
       default:
         if (['admin', 'colaborador', 'professor'].includes(role || '')) {

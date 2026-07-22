@@ -37,6 +37,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
     tabs.push({ id: 'agenda', icon: Calendar, label: 'Agenda' });
   }
 
+  // Avaliações e Consultas: só o professor vê, e só as atribuídas a ele
+  if (isProfessor) {
+    tabs.push({ id: 'agenda', icon: Calendar, label: 'Avaliações' });
+  }
+
   // Montar Treinos (Search): Admin and Professors only (Hidden for Collaborators)
   if (isAdmin || isProfessor) {
     tabs.push(

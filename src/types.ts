@@ -72,7 +72,34 @@ export interface Avaliacao {
     coxa?: number;
   };
   observacao?: string;
+  /** Nome do arquivo PDF original, se a avaliação veio de um upload. */
+  pdfNome?: string;
+  /** Vincula essa avaliação ao agendamento que a originou, se houver. */
+  agendamentoId?: string;
   createdAt: string;
+}
+
+/**
+ * Agendamento de avaliação física ou consulta. Sempre atribuído a um
+ * professor responsável — quem cria o agendamento (admin/colaborador)
+ * escolhe o professor de uma lista; o professor só enxerga os que foram
+ * atribuídos a ele.
+ */
+export interface Agendamento {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  services: string[];
+  date: string; // ISO (data + hora combinadas)
+  observation?: string;
+  paymentStatus: 'Pago' | 'Pendente';
+  professorId: string;
+  professorName: string;
+  /** Preenchido quando o professor já registrou a avaliação correspondente. */
+  avaliacaoId?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export type WorkoutDivision = 'A' | 'B' | 'C' | 'D' | 'E';

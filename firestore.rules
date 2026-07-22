@@ -175,7 +175,9 @@ service cloud.firestore {
              data.date is string &&
              (data.keys().hasAny(['peso']) ? (data.peso is number && data.peso >= 0 && data.peso <= 400) : true) &&
              (data.keys().hasAny(['gordura']) ? (data.gordura is number && data.gordura >= 0 && data.gordura <= 100) : true) &&
-             (data.keys().hasAny(['observacao']) ? (data.observacao is string && data.observacao.size() <= 1000) : true);
+             (data.keys().hasAny(['observacao']) ? (data.observacao is string && data.observacao.size() <= 1000) : true) &&
+             (data.keys().hasAny(['pdfNome']) ? (data.pdfNome is string && data.pdfNome.size() <= 200) : true) &&
+             (data.keys().hasAny(['agendamentoId']) ? (data.agendamentoId is string && data.agendamentoId.size() <= 128) : true);
     }
 
     // Grupos de ranking customizados — criados por alunos (ou staff) para
@@ -227,10 +229,16 @@ service cloud.firestore {
     match /agendamentos/{appointmentId} {
       allow read: if isSignedIn() && (
         isColaborador() ||
+        (isProfessor() && resource != null && resource.data.professorId == request.auth.uid) ||
         (resource != null && resource.data.studentId == request.auth.uid)
       );
       allow create: if isColaborador() && isValidAppointment(incoming());
-      allow update: if isColaborador() && isValidAppointment(incoming());
+      allow update: if (isColaborador() && isValidAppointment(incoming())) ||
+        // O professor responsável pode marcar a avaliação como concluída
+        // (vincular o agendamento a uma avaliação registrada) sem poder
+        // alterar mais nada do agendamento.
+        (isProfessor() && existing().professorId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['avaliacaoId', 'updatedAt']));
       allow delete: if isColaborador();
     }
 
@@ -244,6 +252,8 @@ service cloud.firestore {
              data.date is string &&
              data.paymentStatus in ['Pago', 'Pendente'] &&
              data.createdBy is string &&
+             data.professorId is string && data.professorId.size() > 0 &&
+             (data.keys().hasAny(['professorName']) ? data.professorName is string : true) &&
              isValidId(data.studentId);
     }
   }
