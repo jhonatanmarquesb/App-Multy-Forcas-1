@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anton", "Inter", sans-serif;
+  --color-primary: #FFD700;
+  /* Paleta um pouco mais clara que antes (era #09090b/#000 puro) —
+     mantém a identidade escura, mas com mais respiro e contraste de leitura. */
+  --color-zinc-950: #121215;
+  --color-zinc-900: #1c1c21;
+  --color-zinc-800: #2a2a31;
+  --color-zinc-700: #3f3f48;
+}
+
+:root {
+  background-color: #121215;
+  color: #f4f4f5;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #121215;
+  background-image:
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 14px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 215, 0, 0.055), transparent);
+  background-attachment: fixed;
+  overflow-x: hidden;
+  /* Evita "bounce" horizontal e o zoom automático do iOS em inputs */
+  -webkit-text-size-adjust: 100%;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+/* Toque mínimo de 44px em qualquer elemento interativo — regra de ouro mobile */
+button, a[role="button"] {
+  touch-action: manipulation;
+}
+
+/* iOS aumenta o zoom automaticamente em inputs com font-size < 16px */
+input, select, textarea {
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  input, select, textarea { font-size: inherit; }
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  font-style: normal;
+}
+
+.glass {
+  background: rgba(28, 28, 33, 0.72);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 215, 0, 0.12);
+}
+
+.shadow-premium {
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.06);
+}
+
+.border-premium {
+  border-color: rgba(255, 215, 0, 0.22);
+}
+
+.text-gradient {
+  background: linear-gradient(to bottom right, #FFD700, #E5C100);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-danger {
+  @apply w-full px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all border border-red-900/30 bg-red-950/20 hover:bg-red-900/40 text-red-500 shadow-xl shadow-red-950/10;
+}
+
+.badge-inativo {
+  @apply px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-red-600 text-white animate-pulse shadow-sm shadow-red-900/50;
+}
+
+/* Skeleton loading com shimmer */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(63, 63, 72, 0.5);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), rgba(255, 215, 0, 0.05), transparent);
+  animation: mf-shimmer 1.6s infinite;
+}
+@keyframes mf-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes mf-glow {
+  0%, 100% { box-shadow: 0 0 24px rgba(255, 215, 0, 0.18); }
+  50% { box-shadow: 0 0 44px rgba(255, 215, 0, 0.4); }
+}
+.glow-pulse {
+  animation: mf-glow 2.4s ease-in-out infinite;
+}
+
+/* Brilho de fundo ambiente — usado atrás de cards-herói para dar profundidade sem poluir */
+@keyframes mf-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-3%, 2%) scale(1.05); }
+}
+.ambient-glow {
+  animation: mf-drift 12s ease-in-out infinite;
+}
+
+/* Ripple tátil em botões — feedback visual de toque, além da vibração */
+@keyframes mf-ripple {
+  0% { transform: scale(0); opacity: 0.35; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+.tap-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Contagem numérica que "pisca" suavemente ao atualizar */
+@keyframes mf-count-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.count-pop {
+  animation: mf-count-pop 0.4s cubic-bezier(.22,1,.36,1);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* Área segura do celular (notch/home indicator) para conteúdo fixo */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after, .glow-pulse, .ambient-glow, .count-pop { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
