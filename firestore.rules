@@ -1,0 +1,205 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function getUserData(uid) { return uid != null ? get(/databases/$(database)/documents/users/$(uid)).data : null; }
+
+    function isMasterAdmin() {
+      return isSignedIn() && request.auth.token.email == 'jhonatanmbarbosa27@gmail.com';
+    }
+
+    function isAdmin() {
+      let data = getUserData(request.auth.uid);
+      return isSignedIn() && (
+        isMasterAdmin() ||
+        (data != null && data.role == 'admin')
+      );
+    }
+
+    function isProfessor() {
+      let data = getUserData(request.auth.uid);
+      return isSignedIn() && (
+        isMasterAdmin() ||
+        (data != null && (data.role == 'professor' || data.role == 'admin'))
+      );
+    }
+
+    function isColaborador() {
+      let data = getUserData(request.auth.uid);
+      return isSignedIn() && (
+        isMasterAdmin() ||
+        (data != null && (data.role == 'colaborador' || data.role == 'admin'))
+      );
+    }
+
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Collections ---
+
+    // Users
+    match /users/{userId} {
+      // ENDURECIDO: antes era "allow get: if true" (qualquer pessoa da internet
+      // lia CPF e dados de qualquer aluno sem estar logada). Agora exige login.
+      allow get: if isSignedIn();
+
+      // Necessário para o Ranking (todos os alunos veem a lista).
+      // ATENÇÃO: enquanto o CPF morar neste documento, todo usuário logado
+      // consegue listá-lo. Veja MUDANCAS.md > "Próximo passo recomendado".
+      allow list: if isSignedIn();
+
+      allow create: if isAdmin() && isValidUser(incoming());
+
+      allow update: if (isAdmin() && isValidUser(incoming())) ||
+        (isSignedIn() && request.auth.uid == userId &&
+         incoming().diff(existing()).affectedKeys().hasOnly([
+           'primeiro_acesso', 'lastCheckin', 'checkinsTotal', 'streak',
+           'fcmToken', 'treinosConcluidos', 'lastWorkoutFinish', 'ultimoTreinoData'
+         ]) &&
+         selfUpdateOk()
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ANTI-FRAUDE DO RANKING: o aluno só pode INCREMENTAR os próprios
+    // contadores em +1 por gravação (ou mantê-los). Antes, qualquer aluno
+    // podia gravar treinosConcluidos: 999999 direto pela API e ir ao 1º lugar.
+    function selfUpdateOk() {
+      return
+        (incoming().get('treinosConcluidos', 0) - existing().get('treinosConcluidos', 0)) in [0, 1] &&
+        (incoming().get('checkinsTotal', 0) - existing().get('checkinsTotal', 0)) in [0, 1] &&
+        (incoming().get('streak', 0) - existing().get('streak', 0)) in [0, 1] &&
+        // primeiro_acesso: só pode ir de true -> false, nunca voltar a true
+        (incoming().get('primeiro_acesso', false) == existing().get('primeiro_acesso', false) ||
+         incoming().get('primeiro_acesso', false) == false) &&
+        (incoming().get('fcmToken', '') is string && incoming().get('fcmToken', '').size() <= 512) &&
+        (incoming().get('lastCheckin', '') is string && incoming().get('lastCheckin', '').size() <= 30) &&
+        (incoming().get('ultimoTreinoData', '') is string && incoming().get('ultimoTreinoData', '').size() <= 30) &&
+        (incoming().get('lastWorkoutFinish', '') is string && incoming().get('lastWorkoutFinish', '').size() <= 40);
+    }
+
+    function isValidUser(data) {
+      // Hardened check: Allow flexible updates but ensure core types if present
+      return (data.keys().hasAll(['name', 'cpf', 'role']) ? (
+               data.name is string && data.name.size() <= 100 &&
+               data.cpf is string && data.cpf.size() <= 14 &&
+               data.role in ['admin', 'colaborador', 'aluno', 'professor']
+             ) : true) &&
+             (data.keys().hasAny(['primeiro_acesso']) ? data.primeiro_acesso is bool : true) &&
+             (data.keys().hasAny(['ativo']) ? data.ativo is bool : true) &&
+             (data.keys().hasAny(['status']) ? data.status in ['ativo', 'inativo'] : true) &&
+             (data.keys().hasAny(['checkinsTotal']) ? data.checkinsTotal is number : true) &&
+             (data.keys().hasAny(['treinosConcluidos']) ? data.treinosConcluidos is number : true) &&
+             (data.keys().hasAny(['streak']) ? data.streak is number : true) &&
+             (data.keys().hasAny(['fcmToken']) ? (data.fcmToken is string && data.fcmToken.size() <= 512) : true);
+    }
+
+    // Workouts (Legacy/Existing)
+    match /workouts/{studentId} {
+      allow get: if isProfessor() || (isSignedIn() && request.auth.uid == studentId);
+      allow write: if isProfessor();
+    }
+
+    // Treinos (New Structured Workouts with Divisions A-E)
+    match /treinos/{treinoId} {
+      allow read: if isSignedIn() && (
+        isProfessor() ||
+        resource.data.studentId == request.auth.uid
+      );
+      // Alunos só podem alterar 'divisions' (marcar exercícios concluídos)
+      allow update: if (isProfessor() && isValidTreino(incoming())) ||
+                    (isSignedIn() && existing().studentId == request.auth.uid &&
+                     incoming().diff(existing()).affectedKeys().hasOnly(['divisions']) &&
+                     incoming().divisions.keys().hasOnly(['A', 'B', 'C', 'D', 'E']));
+
+      allow create: if isProfessor() && isValidTreino(incoming());
+      allow delete: if isAdmin();
+    }
+
+    function isValidTreino(data) {
+      return data.studentId is string &&
+             data.teacherId is string &&
+             (data.keys().hasAny(['studentName']) ? (data.studentName is string && data.studentName.size() <= 100) : true) &&
+             (data.keys().hasAny(['teacherName']) ? (data.teacherName is string && data.teacherName.size() <= 100) : true) &&
+             (data.keys().hasAny(['title']) ? (data.title is string && data.title.size() <= 200) : true) &&
+             (data.keys().hasAny(['divisions']) ? (data.divisions is map && data.divisions.keys().hasOnly(['A', 'B', 'C', 'D', 'E'])) : true) &&
+             (data.keys().hasAny(['divisionNames']) ? (data.divisionNames is map && data.divisionNames.keys().hasOnly(['A', 'B', 'C', 'D', 'E'])) : true) &&
+             (data.keys().hasAny(['createdAt']) ? data.createdAt is string : true) &&
+             (data.keys().hasAny(['updatedAt']) ? data.updatedAt is string : true);
+    }
+
+    // Checkins
+    match /checkins/{checkinId} {
+      allow read: if isSignedIn();
+      // ENDURECIDO: o ID do documento precisa começar com o uid do próprio
+      // aluno (formato uid_YYYY-MM-DD). Como só existe 'create' (sem update),
+      // não dá para sobrescrever um check-in existente => 1 por dia, garantido.
+      allow create: if isSignedIn() &&
+        incoming().studentId == request.auth.uid &&
+        checkinId.split('_')[0] == request.auth.uid &&
+        incoming().date is string && incoming().date.size() <= 40 &&
+        (incoming().keys().hasAny(['studentName']) ? (incoming().studentName is string && incoming().studentName.size() <= 100) : true);
+    }
+
+    // Activities (Logs for teacher feedback)
+    match /activities/{activityId} {
+      allow read: if isSignedIn() && (isProfessor() || isColaborador());
+      allow create: if isSignedIn() &&
+        incoming().studentId == request.auth.uid &&
+        (incoming().keys().hasAny(['message']) ? (incoming().message is string && incoming().message.size() <= 500) : true) &&
+        (incoming().keys().hasAny(['effort']) ? (incoming().effort is number && incoming().effort >= 0 && incoming().effort <= 10) : true);
+    }
+
+    // Avaliações físicas — alimenta a tela de Evolução do aluno.
+    // Só professor/colaborador/admin registram; o aluno só lê a própria.
+    match /avaliacoes/{avaliacaoId} {
+      allow read: if isSignedIn() && (
+        isProfessor() || isColaborador() ||
+        (resource != null && resource.data.studentId == request.auth.uid)
+      );
+      allow create, update: if isProfessor() && isValidAvaliacao(incoming());
+      allow delete: if isAdmin();
+    }
+
+    function isValidAvaliacao(data) {
+      return data.studentId is string &&
+             data.avaliadorId is string &&
+             data.date is string &&
+             (data.keys().hasAny(['peso']) ? (data.peso is number && data.peso >= 0 && data.peso <= 400) : true) &&
+             (data.keys().hasAny(['gordura']) ? (data.gordura is number && data.gordura >= 0 && data.gordura <= 100) : true) &&
+             (data.keys().hasAny(['observacao']) ? (data.observacao is string && data.observacao.size() <= 1000) : true);
+    }
+
+    // Agendamentos (Appointments & Evaluations)
+    match /agendamentos/{appointmentId} {
+      allow read: if isSignedIn() && (
+        isColaborador() ||
+        (resource != null && resource.data.studentId == request.auth.uid)
+      );
+      allow create: if isColaborador() && isValidAppointment(incoming());
+      allow update: if isColaborador() && isValidAppointment(incoming());
+      allow delete: if isColaborador();
+    }
+
+    function isValidAppointment(data) {
+      return data.studentId is string &&
+             data.studentName is string &&
+             data.services is list &&
+             data.services.size() > 0 &&
+             data.services.size() <= 10 &&
+             data.services[0] is string &&
+             data.date is string &&
+             data.paymentStatus in ['Pago', 'Pendente'] &&
+             data.createdBy is string &&
+             isValidId(data.studentId);
+    }
+  }
+}

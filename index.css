@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anton", "Inter", sans-serif;
+  --color-primary: #FFD700;
+  --color-zinc-950: #09090b;
+  --color-zinc-900: #18181b;
+  --color-zinc-800: #27272a;
+  --color-zinc-700: #3f3f46;
+}
+
+:root {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+  /* Textura sutil de "chapa de aço" — quase invisível, mas tira a cara de fundo chapado */
+  background-image:
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 14px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 215, 0, 0.04), transparent);
+  background-attachment: fixed;
+}
+
+/* Tipografia display estilo academia: pesada, condensada, imponente */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400; /* Anton só tem um peso — e ele já é um trator */
+  letter-spacing: 0.01em;
+  font-style: normal;
+}
+
+/* Sophisticated Dark Theme Utilities */
+.glass {
+  background: rgba(24, 24, 27, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.shadow-premium {
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.05);
+}
+
+.border-premium {
+  border-color: rgba(255, 215, 0, 0.2);
+}
+
+.text-gradient {
+  background: linear-gradient(to bottom right, #FFD700, #E5C100);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-danger {
+  @apply w-full px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all border border-red-900/30 bg-red-950/20 hover:bg-red-900/40 text-red-500 shadow-xl shadow-red-950/10;
+}
+
+.badge-inativo {
+  @apply px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-red-600 text-white animate-pulse shadow-sm shadow-red-900/50;
+}
+
+/* Skeleton loading com shimmer */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(39, 39, 42, 0.6);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), rgba(255, 215, 0, 0.04), transparent);
+  animation: mf-shimmer 1.6s infinite;
+}
+@keyframes mf-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Brilho pulsante suave para destaques (posição do usuário no ranking) */
+@keyframes mf-glow {
+  0%, 100% { box-shadow: 0 0 24px rgba(255, 215, 0, 0.18); }
+  50% { box-shadow: 0 0 44px rgba(255, 215, 0, 0.38); }
+}
+.glow-pulse {
+  animation: mf-glow 2.4s ease-in-out infinite;
+}
+
+/* Esconde scrollbar nas abas horizontais */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Fix for datetime-local icons in dark mode */
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* Acessibilidade: quem desativa animações no sistema não vê shimmer nem pulso */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after, .glow-pulse { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
