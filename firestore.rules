@@ -158,6 +158,32 @@ service cloud.firestore {
         (incoming().keys().hasAny(['effort']) ? (incoming().effort is number && incoming().effort >= 0 && incoming().effort <= 10) : true);
     }
 
+    // Sessões de treino — histórico imutável ("estilo Hevy"). Só o próprio
+    // aluno cria a sua; ninguém edita ou apaga depois (é um registro
+    // histórico, não um rascunho). Staff pode ler para acompanhamento.
+    match /sessoes/{sessaoId} {
+      allow read: if isSignedIn() && (
+        isProfessor() || isColaborador() ||
+        (resource != null && resource.data.studentId == request.auth.uid)
+      );
+      allow create: if isSignedIn() &&
+        incoming().studentId == request.auth.uid &&
+        isValidSessao(incoming());
+      allow update, delete: if false;
+    }
+
+    function isValidSessao(data) {
+      return data.studentId is string &&
+             data.divisao in ['A', 'B', 'C', 'D', 'E'] &&
+             data.exercicios is list && data.exercicios.size() <= 30 &&
+             data.volumeTotalKg is number && data.volumeTotalKg >= 0 && data.volumeTotalKg <= 100000 &&
+             data.effort is number && data.effort >= 1 && data.effort <= 10 &&
+             data.date is string &&
+             (data.keys().hasAny(['studentName']) ? (data.studentName is string && data.studentName.size() <= 100) : true) &&
+             (data.keys().hasAny(['divisaoNome']) ? (data.divisaoNome is string && data.divisaoNome.size() <= 200) : true) &&
+             (data.keys().hasAny(['streakNoDia']) ? (data.streakNoDia is number && data.streakNoDia >= 0) : true);
+    }
+
     // Avaliações físicas — alimenta a tela de Evolução do aluno.
     // Só professor/colaborador/admin registram; o aluno só lê a própria.
     match /avaliacoes/{avaliacaoId} {

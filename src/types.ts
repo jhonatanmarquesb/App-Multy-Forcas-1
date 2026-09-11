@@ -130,6 +130,36 @@ export enum OperationType {
   WRITE = 'write',
 }
 
+/**
+ * Snapshot de UM treino finalizado — histórico "estilo Hevy". Diferente de
+ * `treinos` (que é a FICHA prescrita e vai sendo sobrescrita a cada marcação),
+ * cada `Sessao` é um registro imutável do que realmente aconteceu naquele dia:
+ * quais séries, com qual carga, em qual exercício. É isso que alimenta o
+ * histórico de treinos e o cálculo de recordes pessoais (PRs).
+ */
+export interface SessaoExercicio {
+  nome: string;
+  seriesFeitas: number;
+  seriesTotal: number;
+  reps: string;
+  cargaKg: number;
+}
+
+export interface Sessao {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  treinoId?: string;
+  divisao: string; // 'A' | 'B' | 'C' | 'D' | 'E'
+  divisaoNome: string;
+  exercicios: SessaoExercicio[];
+  volumeTotalKg: number;
+  effort: number; // 1..10
+  streakNoDia: number;
+  date: string; // ISO
+  createdAt: string;
+}
+
 export interface FirestoreErrorInfo {
   error: string;
   operationType: OperationType;

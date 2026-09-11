@@ -236,13 +236,48 @@ export const WorkoutView: React.FC = () => {
     setRestSeconds(0);
     try {
       const newTreinosConcluidos = (profile.treinosConcluidos || 0) + 1;
+      const novoStreak = (profile.streak || 0) + 1;
 
       await updateDoc(doc(db, 'users', user.uid), {
         treinosConcluidos: newTreinosConcluidos,
         lastWorkoutFinish: new Date().toISOString(),
         ultimoTreinoData: today,
-        streak: (profile.streak || 0) + 1
+        streak: novoStreak
       });
+
+      // Snapshot imutável do treino de hoje — alimenta o Histórico e os
+      // Recordes Pessoais (diferente da ficha, que vai sendo sobrescrita
+      // a cada marcação de série).
+      try {
+        const sessaoExercicios = currentExercises.map((ex) => {
+          const totalSets = parseInt0(ex.sets) || 1;
+          return {
+            nome: ex.name,
+            seriesFeitas: Math.min(ex.completedSets || 0, totalSets),
+            seriesTotal: totalSets,
+            reps: ex.reps || '',
+            cargaKg: ex.actualLoad ?? parseFloatLoose(ex.load),
+          };
+        });
+
+        await addDoc(collection(db, 'sessoes'), {
+          studentId: user.uid,
+          studentName: profile.name,
+          treinoId: workout.id || null,
+          divisao: activeTab,
+          divisaoNome: workout.divisionNames?.[activeTab] || `Treino ${activeTab}`,
+          exercicios: sessaoExercicios,
+          volumeTotalKg: volumeTotal,
+          effort,
+          streakNoDia: novoStreak,
+          date: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      } catch (sessaoErr) {
+        // Não deixa o fluxo de finalizar travar por causa do histórico —
+        // o essencial (streak, treinos concluídos) já foi salvo acima.
+        console.error('Erro ao salvar sessão no histórico:', sessaoErr);
+      }
 
       if (workout.teacherId) {
         await addDoc(collection(db, 'activities'), {

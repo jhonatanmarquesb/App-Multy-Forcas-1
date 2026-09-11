@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Sun, Moon, MonitorSmartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { Login } from './pages/Login';
 import { ResetPassword } from './pages/ResetPassword';
 import { BottomNav } from './components/BottomNav';
@@ -18,12 +19,33 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { CollaboratorDashboard } from './pages/CollaboratorDashboard';
 import { StudentSearch } from './pages/StudentSearch';
 import { AvaliacoesConsultas } from './pages/AvaliacoesConsultas';
+import { Historico } from './pages/Historico';
 
 // Aba inicial sensata por cargo — staff cai na gestão, aluno cai no treino.
 const defaultTabForRole = (role?: string) => {
   if (role === 'admin' || role === 'colaborador') return 'dashboard';
   if (role === 'professor') return 'search';
   return 'workout';
+};
+
+
+// Botão de tema: um toque alterna Sistema → Claro → Escuro → Sistema.
+// O ícone mostra o que está ATIVO agora (não o que vai virar ao tocar).
+const ThemeToggleButton: React.FC = () => {
+  const { themePref, cycleThemePref } = useTheme();
+  const Icon = themePref === 'system' ? MonitorSmartphone : themePref === 'light' ? Sun : Moon;
+  const label = themePref === 'system' ? 'Automático (sistema)' : themePref === 'light' ? 'Claro' : 'Escuro';
+
+  return (
+    <motion.button
+      whileTap={{ scale: 0.88, rotate: 15 }}
+      onClick={cycleThemePref}
+      title={`Tema: ${label} — toque para alternar`}
+      className="p-2 bg-zinc-800/80 text-zinc-400 hover:text-[#FFD700] border border-zinc-700 hover:border-[#FFD700]/40 rounded-xl transition-colors"
+    >
+      <Icon size={16} />
+    </motion.button>
+  );
 };
 
 const AppContent = () => {
@@ -82,6 +104,8 @@ const AppContent = () => {
         return <Ranking />;
       case 'evolucao':
         return <Evolucao />;
+      case 'historico':
+        return <Historico />;
       case 'agenda':
         if (role === 'admin' || role === 'colaborador') return <AdminDashboard initialTab="agenda" />;
         if (role === 'professor') return <AvaliacoesConsultas />;
@@ -110,11 +134,12 @@ const AppContent = () => {
           <span className="text-sm font-display uppercase tracking-wide text-white truncate">Multy Forças</span>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right hidden sm:block">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-right hidden sm:block mr-1">
             <p className="text-[9px] font-bold uppercase text-zinc-500 leading-none">Bem-vindo,</p>
             <p className="text-[11px] font-black uppercase tracking-tight truncate max-w-[140px]">{profile?.name.split(' ')[0]}</p>
           </div>
+          <ThemeToggleButton />
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={logout}
@@ -151,11 +176,13 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <AppContent />
-        <ConfettiHost />
-      </AuthProvider>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+          <ConfettiHost />
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

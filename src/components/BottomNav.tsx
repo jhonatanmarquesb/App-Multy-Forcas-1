@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, ClipboardList, Trophy, Calendar, Settings, LogOut, TrendingUp } from 'lucide-react';
+import { Home, Search, ClipboardList, Trophy, Calendar, Settings, LogOut, TrendingUp, History } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
@@ -26,6 +26,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
     { id: 'workout', icon: ClipboardList, label: 'Treino' },
     { id: 'ranking', icon: Trophy, label: 'Ranking' }
   );
+
+  // Histórico: alunos acompanham treinos passados e recordes pessoais
+  if (isStudent) {
+    tabs.push({ id: 'historico', icon: History, label: 'Histórico' });
+  }
 
   // Evolução: alunos acompanham avaliações físicas (professores/colaboradores usam a busca/gestão)
   if (isStudent) {

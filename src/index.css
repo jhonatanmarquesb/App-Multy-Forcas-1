@@ -162,3 +162,82 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   .skeleton::after, .glow-pulse, .ambient-glow, .count-pop { animation: none; }
   * { scroll-behavior: auto !important; }
 }
+
+/* ===========================================================================
+   TEMA CLARO — ativado automaticamente pelo sistema do celular
+   (prefers-color-scheme) ou manualmente pelo botão de tema no cabeçalho.
+   Estratégia: como quase toda a interface usa os tokens zinc-900/950/800/700
+   (definidos como variáveis CSS lá em cima), redefinir essas variáveis aqui
+   já clareia a maior parte do app automaticamente, sem precisar editar cada
+   componente. Só os poucos lugares com "bg-black" fixo (usado para overlays
+   bem recuados dentro de cards) e "text-white" (cor base do texto) precisam
+   de uma sobrescrita explícita, porque "preto" e "branco" não são tokens
+   que a gente redefiniu — são as cores literais do Tailwind.
+   =========================================================================== */
+html[data-theme="light"] {
+  --color-zinc-950: #f7f7f8;
+  --color-zinc-900: #ffffff;
+  --color-zinc-800: #e4e4e7;
+  --color-zinc-700: #d4d4d8;
+
+  background-color: #f7f7f8;
+  color: #18181b;
+}
+
+html[data-theme="light"] body {
+  background-color: #f7f7f8;
+  color: #18181b;
+  background-image:
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.012) 0 1px, transparent 1px 14px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 215, 0, 0.08), transparent);
+}
+
+/* Cor de texto base — a maioria dos títulos e textos principais usa text-white */
+html[data-theme="light"] .text-white {
+  color: #18181b;
+}
+
+/* Overlays "bg-black/XX" viram painéis recuados claros, mantendo a mesma
+   função visual (um degrau mais escuro que o card ao redor). */
+html[data-theme="light"] .bg-black,
+html[data-theme="light"] .bg-black\/95,
+html[data-theme="light"] .bg-black\/90,
+html[data-theme="light"] .bg-black\/80,
+html[data-theme="light"] .bg-black\/75,
+html[data-theme="light"] .bg-black\/60,
+html[data-theme="light"] .bg-black\/50,
+html[data-theme="light"] .bg-black\/40,
+html[data-theme="light"] .bg-black\/30 {
+  background-color: rgba(24, 24, 27, 0.045);
+}
+
+/* Vidro (glass) e sombras: no claro, sombra escura vira sutil, quase decorativa */
+html[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(24, 24, 27, 0.08);
+}
+
+html[data-theme="light"] .shadow-premium {
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.04);
+}
+
+/* Skeleton shimmer no claro */
+html[data-theme="light"] .skeleton {
+  background: rgba(24, 24, 27, 0.06);
+}
+html[data-theme="light"] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.04), rgba(255, 215, 0, 0.06), transparent);
+}
+
+/* Textura de marca d'água gigante no login ("FORÇA" atrás do card) */
+html[data-theme="light"] .text-white\/\[0\.02\] {
+  color: rgba(0, 0, 0, 0.03);
+}
+
+/* Ícones de calendário nativo (datetime-local) precisam ficar escuros no claro */
+html[data-theme="light"] input[type="datetime-local"] {
+  color-scheme: light;
+}
+html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
